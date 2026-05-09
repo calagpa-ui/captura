@@ -125,13 +125,20 @@ const TODAY = new Date();
 const TODAYSTR = TODAY.toISOString().slice(0,10);
 let googleToken = localStorage.getItem('google_token') || null;
 let tokenExpiry = parseInt(localStorage.getItem('google_token_expiry') || '0');
+let pendingEntry = null;
 let recognition = null;
 let isListening = false;
 
 function init() {
   if (localStorage.getItem('gcal_setup') === 'done') {
-    initGoogleClient(() => getValidToken());
     showApp();
+    initGoogleClient(() => {
+      if (pendingEntry) {
+        const { parsed, text } = pendingEntry;
+        pendingEntry = null;
+        saveToCalendar(parsed, text);
+      }
+    });
   } else {
     document.getElementById('gcal-setup').style.display = 'flex';
   }
@@ -327,8 +334,7 @@ async function saveToCalendar(parsed, originalText) {
       if (!token) throw new Error('No token');
       const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },        body: JSON.stringify(body)
       });
       if (!r.ok) throw new Error();
       addToHistory(parsed); saveHistory(parsed);

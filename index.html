@@ -124,13 +124,17 @@
 const TODAY = new Date();
 const TODAYSTR = TODAY.toISOString().slice(0,10);
 let googleToken = null;
+let tokenExpiry = 0;
 let recognition = null;
 let isListening = false;
 
 function init() {
-  const setup = localStorage.getItem('gcal_setup');
-  if (setup === 'done' || setup === 'skip') showApp();
-  else document.getElementById('gcal-setup').style.display = 'flex';
+  if (localStorage.getItem('gcal_setup') === 'done') {
+    initGoogleClient(() => getValidToken());
+    showApp();
+  } else {
+    document.getElementById('gcal-setup').style.display = 'flex';
+  }
   loadHistory();
 }
 
@@ -140,26 +144,45 @@ function skipGoogle() {
   showApp();
 }
 
-function connectGoogle() {
+let googleClient = null;
+
+function initGoogleClient(callback) {
   if (!window.google?.accounts?.oauth2) {
-    setStatus('Cargando Google... inténtalo de nuevo en 2 segundos.', 'error');
-    setTimeout(() => setStatus(''), 3000); return;
+    setTimeout(() => initGoogleClient(callback), 500); return;
   }
-  const clientId = '833209240344-smg7hj29eac0bn5gk1i9cdma5j3e8v9s.apps.googleusercontent.com';
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
+  googleClient = google.accounts.oauth2.initTokenClient({
+    client_id: '833209240344-smg7hj29eac0bn5gk1i9cdma5j3e8v9s.apps.googleusercontent.com',
     scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks',
+    prompt: '',
     callback: (r) => {
-      if (r.error) { setStatus('Error al conectar Google.', 'error'); return; }
+      if (r.error) { if (callback) callback(null); return; }
       googleToken = r.access_token;
-      localStorage.setItem('gcal_setup','done');
+      tokenExpiry = Date.now() + (r.expires_in - 60) * 1000;
+      localStorage.setItem('gcal_setup', 'done');
       document.getElementById('gcal-setup').style.display = 'none';
       showApp();
-      setStatus('✓ Google Calendar conectado', 'success');
-      setTimeout(() => setStatus(''), 3000);
+      if (callback) callback(r.access_token);
     }
   });
-  client.requestAccessToken();
+}
+
+function connectGoogle() {
+  if (!googleClient) { initGoogleClient(() => googleClient?.requestAccessToken({prompt: 'consent'})); return; }
+  googleClient.requestAccessToken({prompt: 'consent'});
+}
+
+async function getValidToken() {
+  if (googleToken && Date.now() < tokenExpiry) return googleToken;
+  return new Promise((resolve) => {
+    if (!googleClient) { initGoogleClient((t) => resolve(t)); return; }
+    googleClient.callback = (r) => {
+      if (r.error) { resolve(null); return; }
+      googleToken = r.access_token;
+      tokenExpiry = Date.now() + (r.expires_in - 60) * 1000;
+      resolve(googleToken);
+    };
+    googleClient.requestAccessToken({prompt: ''});
+  });
 }
 
 function showApp() {
@@ -296,9 +319,11 @@ async function saveToCalendar(parsed, originalText) {
         body.start = { dateTime: parsed.start, timeZone: 'Europe/Madrid' };
         body.end   = { dateTime: parsed.end,   timeZone: 'Europe/Madrid' };
       }
+      const token = await getValidToken();
+      if (!token) throw new Error('No token');
       const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer '+googleToken, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       if (!r.ok) throw new Error();

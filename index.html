@@ -205,13 +205,13 @@ function classify(text) {
   const t = text.toLowerCase();
   const now = new Date();
 
-  const timeMatch = t.match(/(\d{1,2})(?::(\d{2}))?\s*(h|hora|am|pm|de la mañana|de la tarde|de la noche)?/);
+  const timeMatch = t.match(/a\s*las\s*(\d{1,2})(?::(\d{2}))?|(\d{1,2})(?::(\d{2}))?\s*h\b/);
   let hour = null, min = 0;
   if (timeMatch) {
-    hour = parseInt(timeMatch[1]);
-    min = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    hour = parseInt(timeMatch[1] || timeMatch[3]);
+    min = parseInt(timeMatch[2] || timeMatch[4] || 0);
     if ((t.includes('tarde') || t.includes('pm')) && hour < 12) hour += 12;
-    if (t.includes('mañana') && t.includes('de la') && hour < 12) {}
+    if (t.includes('noche') && hour < 12) hour += 12;
   }
 
   let date = new Date(now);

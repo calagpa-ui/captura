@@ -10,27 +10,37 @@ exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  try {
-    const { action, code, refresh_token } = JSON.parse(event.body || '{}');
-
-    if (action === 'exchange') {
+  // Handle Google OAuth redirect (GET with code)
+  if (event.httpMethod === 'GET') {
+    const code = event.queryStringParameters?.code;
+    if (!code) return { statusCode: 400, headers, body: 'No code' };
+    try {
       const { tokens } = await oauth2Client.getToken(code);
+      const params = new URLSearchParams({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || '',
+        expiry_date: tokens.expiry_date
+      });
       return {
-        statusCode: 200, headers,
-        body: JSON.stringify({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          expiry_date: tokens.expiry_date
-        })
+        statusCode: 302,
+        headers: { ...headers, Location: `/captura/?${params}` },
+        body: ''
       };
+    } catch(e) {
+      return { statusCode: 500, headers, body: e.message };
     }
+  }
+
+  // Handle POST requests
+  try {
+    const { action, refresh_token } = JSON.parse(event.body || '{}');
 
     if (action === 'refresh') {
       oauth2Client.setCredentials({ refresh_token });

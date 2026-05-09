@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <meta name="theme-color" content="#7c3aed">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +21,7 @@
   }
   h1 { font-size: 15px; font-weight: 500; color: #888; letter-spacing: 0.05em; text-transform: uppercase; }
   #main-btn {
-    width: 140px; height: 140px; border-radius: 50%; border: none;
+    width: 180px; height: 180px; border-radius: 50%; border: none;
     background: linear-gradient(145deg, #4f46e5, #7c3aed);
     color: white; font-size: 14px; font-weight: 500; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
@@ -29,7 +29,8 @@
   }
   #main-btn:active { transform: scale(0.94); }
   #main-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(145deg, #dc2626, #b91c1c); }
-  #main-btn svg { width: 40px; height: 40px; }
+  #main-btn svg { width: 56px; height: 56px; }
+  #main-btn { font-size: 17px; }
   @keyframes pulse {
     0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
     70%  { box-shadow: 0 0 0 20px rgba(220,38,38,0); }

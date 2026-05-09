@@ -123,8 +123,8 @@
 <script>
 const TODAY = new Date();
 const TODAYSTR = TODAY.toISOString().slice(0,10);
-let googleToken = null;
-let tokenExpiry = 0;
+let googleToken = localStorage.getItem('google_token') || null;
+let tokenExpiry = parseInt(localStorage.getItem('google_token_expiry') || '0');
 let recognition = null;
 let isListening = false;
 
@@ -159,6 +159,8 @@ function initGoogleClient(callback) {
       googleToken = r.access_token;
       tokenExpiry = Date.now() + (r.expires_in - 60) * 1000;
       localStorage.setItem('gcal_setup', 'done');
+      localStorage.setItem('google_token', googleToken);
+      localStorage.setItem('google_token_expiry', tokenExpiry);
       document.getElementById('gcal-setup').style.display = 'none';
       showApp();
       if (callback) callback(r.access_token);
@@ -179,6 +181,8 @@ async function getValidToken() {
       if (r.error) { resolve(null); return; }
       googleToken = r.access_token;
       tokenExpiry = Date.now() + (r.expires_in - 60) * 1000;
+      localStorage.setItem('google_token', googleToken);
+      localStorage.setItem('google_token_expiry', String(tokenExpiry));
       resolve(googleToken);
     };
     googleClient.requestAccessToken({prompt: ''});
